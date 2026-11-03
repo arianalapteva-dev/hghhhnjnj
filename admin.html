@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Админ-панель | Сушидо</title>
+<style>
+  :root{--red:#e63946;--dark:#1d1d1f;--dark2:#2b2b30;--gold:#f4b400;--gray:#6b6b70;--green:#2a9d3f;--radius:16px;--shadow:0 8px 30px rgba(0,0,0,.08)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',Roboto,Arial,sans-serif;background:#f4f4f4;color:var(--dark);line-height:1.6}
+  .container{max-width:1200px;margin:0 auto;padding:20px}
+  
+  .admin-panel{background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.1);overflow:hidden;margin-top:20px}
+  .admin-head{display:flex;justify-content:space-between;align-items:center;padding:24px 28px;border-bottom:1px solid #eee}
+  .admin-head h2{font-size:22px;color:var(--dark);margin-bottom:4px}
+  .admin-sub{color:var(--gray);font-size:13.5px}
+  .admin-user-info{font-size:13px;color:var(--gray);margin-top:4px;font-weight:600}
+  .admin-close{background:none;border:none;font-size:24px;color:var(--gray);padding:6px 12px;border-radius:8px;cursor:pointer;text-decoration:none}
+  .admin-close:hover{background:#f2f2f2;color:var(--red)}
+  
+  .admin-tabs{display:flex;border-bottom:1px solid #eee;background:#fafafa}
+  .admin-tab{padding:14px 24px;font-weight:600;font-size:14.5px;color:var(--gray);cursor:pointer;border-bottom:2px solid transparent;transition:.2s}
+  .admin-tab:hover{color:var(--dark)}
+  .admin-tab.active{color:var(--red);border-bottom-color:var(--red);background:#fff}
+  
+  .admin-content{padding:20px 28px;max-height:calc(100vh - 250px);overflow-y:auto;display:none}
+  .admin-content.active{display:block}
+
+  .admin-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+  .admin-stat{background:#fafafa;border-radius:12px;padding:16px;text-align:center;border:1px solid #eee}
+  .admin-stat-lbl{font-size:12px;color:var(--gray);margin-bottom:4px}
+  .admin-stat-val{font-size:22px;font-weight:800;color:var(--red)}
+
+  .admin-filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;background:#fafafa;padding:14px;border-radius:12px;border:1px solid #eee}
+  .admin-filters select,.admin-filters input{padding:9px 12px;border:1.5px solid #e2d5c6;border-radius:10px;font-size:13.5px;font-family:inherit;background:#fff;outline:none}
+  .admin-filters input{flex:1;min-width:180px}
+  .admin-filters select:focus,.admin-filters input:focus{border-color:var(--red)}
+  
+  .admin-btn{padding:9px 16px;border:1.5px solid #e2d5c6;border-radius:10px;background:#fff;font-size:13.5px;font-weight:600;transition:.2s;cursor:pointer;color:var(--dark)}
+  .admin-btn:hover{border-color:var(--red);color:var(--red)}
+  .admin-btn-danger{border-color:var(--red);color:var(--red)}
+  .admin-btn-danger:hover{background:var(--red);color:#fff}
+  .admin-btn-success{background:var(--green);color:#fff;border-color:var(--green)}
+  .admin-btn-success:hover{background:#1f7a2f;border-color:#1f7a2f;color:#fff}
+
+  .admin-orders{display:flex;flex-direction:column;gap:14px}
+  .admin-empty{text-align:center;color:var(--gray);padding:60px 20px;font-size:15px}
+  
+  .admin-order{background:#fff;border:1.5px solid #eee;border-radius:14px;padding:18px;transition:.2s}
+  .admin-order:hover{border-color:#e2d5c6;box-shadow:0 4px 16px rgba(0,0,0,.06)}
+  .admin-order-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+  .admin-order-id{font-weight:800;font-size:15px;color:var(--dark)}
+  .admin-order-date{font-size:12px;color:var(--gray);margin-top:2px}
+  .admin-order-price{font-size:18px;font-weight:800;color:var(--red);text-align:right}
+  .admin-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;margin-top:4px}
+  .badge-new{background:#fff4e0;color:#c97b00}
+  .badge-confirmed{background:#e0f7e5;color:#1a7a2e}
+  .badge-delivered{background:#e0f0ff;color:#0055cc}
+  .badge-cancelled{background:#ffe5e7;color:#c22a37}
+  
+  .admin-order-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px 16px;font-size:13.5px;margin-bottom:12px}
+  .admin-order-info b{color:var(--gray);font-weight:600;margin-right:4px}
+  .admin-order-items{background:#fafafa;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px}
+  .admin-order-items div{padding:3px 0;display:flex;justify-content:space-between}
+  
+  .admin-order-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .admin-status-btn{padding:6px 12px;border:1.5px solid #e2d5c6;border-radius:8px;background:#fff;font-size:12.5px;font-weight:600;transition:.2s;cursor:pointer;color:var(--dark)}
+  .admin-status-btn:hover{border-color:var(--red);color:var(--red)}
+  .admin-status-btn.active{background:var(--green);color:#fff;border-color:var(--green)}
+  .admin-del-btn{margin-left:auto;padding:6px 12px;border:1.5px solid #e2d5c6;border-radius:8px;background:#fff;font-size:12.5px;color:var(--gray);transition:.2s;cursor:pointer}
+  .admin-del-btn:hover{border-color:var(--red);color:var(--red);background:#fff5f5}
+  .disabled-btn{opacity:0.5;pointer-events:none;cursor:not-allowed}
+
+  .user-list{display:flex;flex-direction:column;gap:10px}
+  .user-item{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid #eee;border-radius:12px;padding:14px 18px;transition:.2s;flex-wrap:wrap;gap:10px}
+  .user-item:hover{border-color:#e2d5c6}
+  .user-info{display:flex;align-items:center;gap:12px;flex:1;min-width:200px}
+  .user-avatar{width:40px;height:40px;border-radius:50%;background:#f0e4d8;color:var(--dark);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700}
+  .user-name{font-weight:600;font-size:14.5px}
+  .user-login{font-size:12.5px;color:var(--gray)}
+  .user-role{font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;margin-left:auto}
+  .role-owner{background:#ffe5e7;color:#c22a37}
+  .role-operator{background:#e0f0ff;color:#0055cc}
+  .role-editor{background:#fff4e0;color:#c97b00}
+  .user-actions{display:flex;gap:8px;align-items:center}
+
+  /* НОВОСТИ */
+  .news-list{display:flex;flex-direction:column;gap:14px}
+  .news-item{background:#fff;border:1.5px solid #eee;border-radius:14px;padding:18px;transition:.2s;display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+  .news-item:hover{border-color:#e2d5c6;box-shadow:0 4px 16px rgba(0,0,0,.06)}
+  .news-item-img{width:100px;height:100px;border-radius:12px;object-fit:cover;flex-shrink:0;background:linear-gradient(135deg,#fff8f0,#ffe9e0);display:flex;align-items:center;justify-content:center;font-size:42px;overflow:hidden}
+  .news-item-img img{width:100%;height:100%;object-fit:cover}
+  .news-item-body{flex:1;min-width:220px}
+  .news-item-title{font-weight:700;font-size:16px;margin-bottom:4px;display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+  .news-item-date{font-size:12px;color:var(--gray);margin-bottom:6px}
+  .news-item-text{font-size:13.5px;color:var(--dark2);line-height:1.5}
+  .news-item-actions{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;align-self:center}
+  .news-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700}
+  .news-badge.pub{background:#e0f7e5;color:#1a7a2e}
+  .news-badge.draft{background:#fff4e0;color:#c97b00}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+  .modal-overlay.show{display:flex}
+  .modal-box{background:#fff;border-radius:16px;max-width:440px;width:100%;padding:32px;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:pop .3s ease;max-height:90vh;overflow-y:auto}
+  @keyframes pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+  .modal-box h3{font-size:20px;margin-bottom:20px;text-align:center}
+  .modal-box .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+  .modal-box label{font-weight:600;font-size:13.5px}
+  .modal-box input,.modal-box select,.modal-box textarea{padding:12px 14px;border:1.5px solid #e2d5c6;border-radius:12px;font-size:14.5px;font-family:inherit;outline:none}
+  .modal-box textarea{resize:vertical;min-height:100px}
+  .modal-box input:focus,.modal-box select:focus,.modal-box textarea:focus{border-color:var(--red)}
+  .modal-box .modal-actions{display:flex;gap:10px;margin-top:20px}
+  .modal-box .modal-actions button{flex:1;padding:12px;border:none;border-radius:12px;font-size:14.5px;font-weight:700;cursor:pointer;transition:.2s}
+  .modal-box .modal-actions .btn-save{background:var(--red);color:#fff}
+  .modal-box .modal-actions .btn-save:hover{background:#c22a37}
+  .modal-box .modal-actions .btn-cancel{background:#f2f2f2;color:var(--dark)}
+  .modal-box .modal-actions .btn-cancel:hover{background:#e0e0e0}
+
+  @media(max-width:860px){
+    .admin-stats{grid-template-columns:repeat(2,1fr)}
+    .admin-head,.admin-content{padding-left:16px;padding-right:16px}
+    .user-item{flex-direction:column;align-items:flex-start}
+    .user-role{margin-left:0}
+    .user-actions{width:100%;justify-content:flex-end}
+    .news-item-actions{margin-left:0;width:100%;justify-content:flex-end}
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="admin-panel">
+    <div class="admin-head">
+      <div>
+        <h2>🔐 Админ-панель</h2>
+        <p class="admin-sub">Управление заказами и сотрудниками «Сушидо»</p>
+        <p class="admin-user-info" id="currentUserInfo"></p>
+      </div>
+      <a href="index.html" class="admin-close" title="Вернуться на сайт">✕</a>
+    </div>
+
+    <!-- Табы -->
+    <div class="admin-tabs">
+      <div class="admin-tab active" data-tab="orders">📦 Заказы</div>
+      <div class="admin-tab" data-tab="news" id="tab-news-btn">📰 Новости</div>
+      <div class="admin-tab" data-tab="users" id="tab-users-btn">👥 Сотрудники</div>
+    </div>
+
+    <!-- Вкладка ЗАКАЗЫ -->
+    <div class="admin-content active" id="tab-orders">
+      <div class="admin-stats">
+        <div class="admin-stat"><div class="admin-stat-lbl">Всего заказов</div><div class="admin-stat-val" id="statTotal">0</div></div>
+        <div class="admin-stat"><div class="admin-stat-lbl">Новых</div><div class="admin-stat-val" id="statNew">0</div></div>
+        <div class="admin-stat"><div class="admin-stat-lbl">Сумма</div><div class="admin-stat-val" id="statSum">0 ₽</div></div>
+        <div class="admin-stat"><div class="admin-stat-lbl">Средний чек</div><div class="admin-stat-val" id="statAvg">0 ₽</div></div>
+      </div>
+
+      <div class="admin-filters">
+        <select id="adminFilterStatus">
+          <option value="all">Все статусы</option>
+          <option value="new">🆕 Новые</option>
+          <option value="confirmed">✅ Подтверждённые</option>
+          <option value="delivered">📦 Доставленные</option>
+          <option value="cancelled">❌ Отменённые</option>
+        </select>
+        <select id="adminFilterMethod">
+          <option value="all">Все способы</option>
+          <option value="Доставка">🛵 Доставка</option>
+          <option value="Самовывоз">🏪 Самовывоз</option>
+        </select>
+        <input type="text" id="adminSearch" placeholder="🔍 Поиск по имени, телефону, ID">
+        <button class="admin-btn" id="adminExport">📥 Экспорт CSV</button>
+        <button class="admin-btn admin-btn-danger" id="adminClearAll">🗑 Удалить всё</button>
+      </div>
+
+      <div class="admin-orders" id="adminOrders">
+        <div class="admin-empty"><div style="font-size:48px;margin-bottom:12px">📭</div>Заказов пока нет</div>
+      </div>
+    </div>
+
+    <!-- Вкладка НОВОСТИ -->
+    <div class="admin-content" id="tab-news">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+        <h3 style="font-size:18px">Лента новостей</h3>
+        <button class="admin-btn admin-btn-success" id="addNewsBtn">+ Добавить новость</button>
+      </div>
+      <div class="news-list" id="newsList"></div>
+    </div>
+
+    <!-- Вкладка СОТРУДНИКИ -->
+    <div class="admin-content" id="tab-users">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+        <h3 style="font-size:18px">Список сотрудников</h3>
+        <button class="admin-btn admin-btn-success" id="addUserBtn">+ Добавить сотрудника</button>
+      </div>
+      <div class="user-list" id="userList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно сотрудника -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal-box">
+    <h3 id="modalTitle">Добавить сотрудника</h3>
+    <input type="hidden" id="editUserId">
+    <div class="field">
+      <label>Имя</label>
+      <input type="text" id="userName" placeholder="Иван Иванов">
+    </div>
+    <div class="field">
+      <label>Логин (email)</label>
+      <input type="text" id="userLogin" placeholder="admin@example.com">
+    </div>
+    <div class="field">
+      <label>Пароль</label>
+      <input type="text" id="userPass" placeholder="Пароль">
+    </div>
+    <div class="field">
+      <label>Роль</label>
+      <select id="userRole">
+        <option value="owner">Главный админ (владелец)</option>
+        <option value="operator">Оператор</option>
+        <option value="editor">Редактор</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeUserModal()">Отмена</button>
+      <button class="btn-save" id="saveUserBtn">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно новости -->
+<div class="modal-overlay" id="newsModal">
+  <div class="modal-box" style="max-width:520px">
+    <h3 id="newsModalTitle">Добавить новость</h3>
+    <input type="hidden" id="editNewsId">
+    <div class="field">
+      <label>Заголовок</label>
+      <input type="text" id="newsTitle" placeholder="Например: Новая акция!">
+    </div>
+    <div class="field">
+      <label>Краткий текст</label>
+      <textarea id="newsText" placeholder="Описание новости..."></textarea>
+    </div>
+    <div class="field">
+      <label>Эмодзи / иконка</label>
+      <input type="text" id="newsEmoji" placeholder="🎉" maxlength="4" style="max-width:100px">
+    </div>
+    <div class="field">
+      <label>Ссылка на изображение (необязательно)</label>
+      <input type="text" id="newsImg" placeholder="https://...">
+    </div>
+    <div class="field">
+      <label>Статус</label>
+      <select id="newsStatus">
+        <option value="published">Опубликовано</option>
+        <option value="draft">Черновик</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeNewsModal()">Отмена</button>
+      <button class="btn-save" id="saveNewsBtn">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== ДАННЫЕ =====
+const ORDERS_KEY = 'sushido_orders_v1';
+const USERS_KEY = 'sushido_users_v1';
+const NEWS_KEY = 'sushido_news_v1';
+
+const ROLES = {
+  owner: { name: 'Главный админ', class: 'role-owner' },
+  operator: { name: 'Оператор', class: 'role-operator' },
+  editor: { name: 'Редактор', class: 'role-editor' }
+};
+
+const currentRole = sessionStorage.getItem('sushido_current_role') || 'owner';
+const currentName = sessionStorage.getItem('sushido_current_name') || 'Гость';
+
+document.getElementById('currentUserInfo').textContent = `Вы вошли как: ${currentName} (${ROLES[currentRole]?.name || 'Гость'})`;
+
+const isOwner = currentRole === 'owner';
+const isOperator = currentRole === 'operator';
+const isEditor = currentRole === 'editor';
+
+// Скрываем вкладку сотрудников для оператора и редактора
+if(!isOwner){
+  document.getElementById('tab-users-btn').style.display = 'none';
+  document.getElementById('addUserBtn').style.display = 'none';
+}
+
+// Редактор НЕ может управлять заказами, но может новостями
+// Оператор НЕ может управлять новостями, но может заказами
+if(isOperator){
+  document.getElementById('tab-news-btn').style.display = 'none';
+}
+
+// ===== УТИЛИТЫ =====
+function getOrders(){ try{ return JSON.parse(localStorage.getItem(ORDERS_KEY)) || []; }catch(e){ return []; } }
+function setOrders(orders){ localStorage.setItem(ORDERS_KEY, JSON.stringify(orders)); }
+function getUsers(){ try{ return JSON.parse(localStorage.getItem(USERS_KEY)) || []; }catch(e){ return []; } }
+function setUsers(users){ localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
+function getNews(){ try{ return JSON.parse(localStorage.getItem(NEWS_KEY)) || []; }catch(e){ return []; } }
+function setNews(news){ localStorage.setItem(NEWS_KEY, JSON.stringify(news)); }
+
+function initUsers() {
+  let users = getUsers();
+  if (!users || users.length === 0) {
+    users = [
+      { id: 'u1', name: 'Главный админ', login: 'arianalapteva36@gmail.com', pass: 'Ariana0206)', role: 'owner' },
+      { id: 'u2', name: 'Оператор', login: 'operator', pass: '2020', role: 'operator' },
+      { id: 'u3', name: 'Редактор', login: 'editor', pass: '2020', role: 'editor' }
+    ];
+    setUsers(users);
+  }
+  return users;
+}
+
+// ===== ЗАКАЗЫ =====
+function renderAdminOrders(){
+  const orders = getOrders();
+  const filterStatus = document.getElementById('adminFilterStatus').value;
+  const filterMethod = document.getElementById('adminFilterMethod').value;
+  const search = (document.getElementById('adminSearch').value || '').toLowerCase().trim();
+
+  const total = orders.length;
+  const newCount = orders.filter(o=>o.status==='new').length;
+  const sum = orders.reduce((a,o)=>a + (Number(o.total)||0), 0);
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statNew').textContent = newCount;
+  document.getElementById('statSum').textContent = sum.toLocaleString('ru-RU') + ' ₽';
+  document.getElementById('statAvg').textContent = total ? Math.round(sum/total).toLocaleString('ru-RU') + ' ₽' : '0 ₽';
+
+  let filtered = orders;
+  if(filterStatus !== 'all') filtered = filtered.filter(o=>o.status===filterStatus);
+  if(filterMethod !== 'all') filtered = filtered.filter(o=>o.method===filterMethod);
+  if(search) filtered = filtered.filter(o =>
+    (o.name||'').toLowerCase().includes(search) ||
+    (o.phone||'').toLowerCase().includes(search) ||
+    (o.id||'').toLowerCase().includes(search)
+  );
+
+  const box = document.getElementById('adminOrders');
+  if(filtered.length === 0){
+    box.innerHTML = '<div class="admin-empty"><div style="font-size:48px;margin-bottom:12px">📭</div>Заказов нет</div>';
+    return;
+  }
+  
+  const statusNames = { new:'🆕 Новый', confirmed:'✅ Подтверждён', delivered:'📦 Доставлен', cancelled:'❌ Отменён' };
+  const badgeClass = { new:'badge-new', confirmed:'badge-confirmed', delivered:'badge-delivered', cancelled:'badge-cancelled' };
+
+  box.innerHTML = filtered.map(o=>{
+    const date = new Date(o.createdAt).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const itemsHtml = (o.items||[]).map(i=>`<div><span>${i.name} × ${i.qty}</span><span>${(i.price*i.qty).toLocaleString('ru-RU')} ₽</span></div>`).join('');
+    
+    const actionsHtml = isEditor ? '' : `
+      <div class="admin-order-actions">
+        <button class="admin-status-btn ${o.status==='new'?'active':''}" data-set-status="new" data-id="${o.id}">Новый</button>
+        <button class="admin-status-btn ${o.status==='confirmed'?'active':''}" data-set-status="confirmed" data-id="${o.id}">Подтвердить</button>
+        <button class="admin-status-btn ${o.status==='delivered'?'active':''}" data-set-status="delivered" data-id="${o.id}">Доставлен</button>
+        <button class="admin-status-btn ${o.status==='cancelled'?'active':''}" data-set-status="cancelled" data-id="${o.id}">Отменить</button>
+        ${isOwner ? `<button class="admin-del-btn" data-del-id="${o.id}">🗑 Удалить</button>` : ''}
+      </div>
+    `;
+
+    return `
+      <div class="admin-order">
+        <div class="admin-order-head">
+          <div>
+            <div class="admin-order-id">${o.id}</div>
+            <div class="admin-order-date">${date}</div>
+            <span class="admin-badge ${badgeClass[o.status]||'badge-new'}">${statusNames[o.status]||o.status}</span>
+          </div>
+          <div class="admin-order-price">${(Number(o.total)||0).toLocaleString('ru-RU')} ₽</div>
+        </div>
+        <div class="admin-order-info">
+          <div><b>Имя:</b> ${o.name||'—'}</div>
+          <div><b>Телефон:</b> ${o.phone||'—'}</div>
+          <div><b>Способ:</b> ${o.method||'—'}</div>
+          <div><b>Адрес:</b> ${o.address||'—'}</div>
+          <div><b>Время:</b> ${o.time||'—'}</div>
+          <div><b>Оплата:</b> ${o.payment||'—'}</div>
+          ${o.comment?`<div style="grid-column:1/-1"><b>Комментарий:</b> ${o.comment}</div>`:''}
+          ${o.promocode?`<div style="grid-column:1/-1"><b>Промокод:</b> ${o.promocode}${o.burgerGift?' (бургер в подарок)':''}</div>`:''}
+        </div>
+        <div class="admin-order-items">${itemsHtml}</div>
+        ${actionsHtml}
+      </div>
+    `;
+  }).join('');
+}
+
+// ===== НОВОСТИ =====
+function renderNews(){
+  const news = getNews();
+  const list = document.getElementById('newsList');
+  if(!list) return;
+
+  if(news.length === 0){
+    list.innerHTML = '<div class="admin-empty"><div style="font-size:48px;margin-bottom:12px">📰</div>Новостей пока нет. Нажмите «Добавить новость».</div>';
+    return;
+  }
+
+  list.innerHTML = news.map(n=>{
+    const date = new Date(n.createdAt).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const isPub = n.status === 'published';
+    const imgHtml = n.image 
+      ? `<img src="${n.image}" alt="" onerror="this.style.display='none';this.parentNode.textContent='${n.emoji||'📰'}'">` 
+      : (n.emoji || '📰');
+    return `
+      <div class="news-item">
+        <div class="news-item-img">${imgHtml}</div>
+        <div class="news-item-body">
+          <div class="news-item-title">
+            ${n.title}
+            <span class="news-badge ${isPub?'pub':'draft'}">${isPub?'Опубликовано':'Черновик'}</span>
+          </div>
+          <div class="news-item-date">${date}</div>
+          <div class="news-item-text">${n.text||''}</div>
+        </div>
+        <div class="news-item-actions">
+          <button class="admin-btn" onclick="editNews('${n.id}')">✏️ Изменить</button>
+          <button class="admin-btn admin-btn-danger" onclick="deleteNews('${n.id}')">🗑 Удалить</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openNewsModal(newsItem){
+  const modal = document.getElementById('newsModal');
+  document.getElementById('newsModalTitle').textContent = newsItem ? 'Редактировать новость' : 'Добавить новость';
+  document.getElementById('editNewsId').value = newsItem ? newsItem.id : '';
+  document.getElementById('newsTitle').value = newsItem ? newsItem.title : '';
+  document.getElementById('newsText').value = newsItem ? newsItem.text : '';
+  document.getElementById('newsEmoji').value = newsItem ? (newsItem.emoji||'') : '📰';
+  document.getElementById('newsImg').value = newsItem ? (newsItem.image||'') : '';
+  document.getElementById('newsStatus').value = newsItem ? (newsItem.status||'published') : 'published';
+  modal.classList.add('show');
+}
+
+function closeNewsModal(){
+  document.getElementById('newsModal').classList.remove('show');
+}
+
+function editNews(id){
+  const item = getNews().find(n=>n.id===id);
+  if(item) openNewsModal(item);
+}
+
+function deleteNews(id){
+  if(!confirm('Удалить эту новость?')) return;
+  setNews(getNews().filter(n=>n.id!==id));
+  renderNews();
+}
+
+document.getElementById('addNewsBtn').addEventListener('click', ()=>openNewsModal(null));
+
+document.getElementById('saveNewsBtn').addEventListener('click', ()=>{
+  const id = document.getElementById('editNewsId').value;
+  const title = document.getElementById('newsTitle').value.trim();
+  const text = document.getElementById('newsText').value.trim();
+  const emoji = document.getElementById('newsEmoji').value.trim() || '📰';
+  const image = document.getElementById('newsImg').value.trim();
+  const status = document.getElementById('newsStatus').value;
+
+  if(!title){ alert('Введите заголовок новости'); return; }
+  if(!text){ alert('Введите текст новости'); return; }
+
+  let news = getNews();
+  if(id){
+    const idx = news.findIndex(n=>n.id===id);
+    if(idx > -1){
+      news[idx] = { ...news[idx], title, text, emoji, image, status };
+    }
+  } else {
+    news.unshift({
+      id: 'n' + Date.now(),
+      title, text, emoji, image, status,
+      createdAt: new Date().toISOString()
+    });
+  }
+  setNews(news);
+  renderNews();
+  closeNewsModal();
+});
+
+document.getElementById('newsModal').addEventListener('click', (e)=>{
+  if(e.target.id === 'newsModal') closeNewsModal();
+});
+
+// ===== СОТРУДНИКИ =====
+function renderUsers() {
+  const users = getUsers();
+  const list = document.getElementById('userList');
+  
+  if (users.length === 0) {
+    list.innerHTML = '<div class="admin-empty">Нет сотрудников</div>';
+    return;
+  }
+
+  list.innerHTML = users.map(u => {
+    const role = ROLES[u.role] || ROLES.operator;
+    const initial = u.name ? u.name.charAt(0).toUpperCase() : '?';
+    return `
+      <div class="user-item">
+        <div class="user-info">
+          <div class="user-avatar">${initial}</div>
+          <div>
+            <div class="user-name">${u.name}</div>
+            <div class="user-login">${u.login}</div>
+          </div>
+          <span class="user-role ${role.class}">${role.name}</span>
+        </div>
+        <div class="user-actions">
+          <button class="admin-btn" onclick="editUser('${u.id}')">✏️ Изменить</button>
+          ${u.role !== 'owner' ? `<button class="admin-btn admin-btn-danger" onclick="deleteUser('${u.id}')">🗑 Удалить</button>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function editUser(id) {
+  const user = getUsers().find(u => u.id === id);
+  if (!user) return;
+  
+  document.getElementById('modalTitle').textContent = 'Редактировать сотрудника';
+  document.getElementById('editUserId').value = user.id;
+  document.getElementById('userName').value = user.name;
+  document.getElementById('userLogin').value = user.login;
+  document.getElementById('userPass').value = user.pass;
+  document.getElementById('userRole').value = user.role;
+  
+  document.getElementById('userModal').classList.add('show');
+}
+
+function deleteUser(id) {
+  if (!confirm('Удалить этого сотрудника?')) return;
+  setUsers(getUsers().filter(u => u.id !== id));
+  renderUsers();
+}
+
+function closeUserModal() {
+  document.getElementById('userModal').classList.remove('show');
+  document.getElementById('editUserId').value = '';
+  document.getElementById('userName').value = '';
+  document.getElementById('userLogin').value = '';
+  document.getElementById('userPass').value = '';
+  document.getElementById('userRole').value = 'operator';
+}
+
+document.getElementById('addUserBtn').addEventListener('click', () => {
+  document.getElementById('modalTitle').textContent = 'Добавить сотрудника';
+  document.getElementById('editUserId').value = '';
+  document.getElementById('userName').value = '';
+  document.getElementById('userLogin').value = '';
+  document.getElementById('userPass').value = '';
+  document.getElementById('userRole').value = 'operator';
+  document.getElementById('userModal').classList.add('show');
+});
+
+document.getElementById('saveUserBtn').addEventListener('click', () => {
+  const id = document.getElementById('editUserId').value;
+  const name = document.getElementById('userName').value.trim();
+  const login = document.getElementById('userLogin').value.trim();
+  const pass = document.getElementById('userPass').value.trim();
+  const role = document.getElementById('userRole').value;
+
+  if (!name || !login || !pass) {
+    alert('Заполните все поля');
+    return;
+  }
+
+  let users = getUsers();
+  const existing = users.find(u => u.login === login && u.id !== id);
+  if (existing) {
+    alert('Этот логин уже занят');
+    return;
+  }
+
+  if (id) {
+    const idx = users.findIndex(u => u.id === id);
+    if (idx > -1) {
+      users[idx] = { ...users[idx], name, login, pass, role };
+    }
+  } else {
+    users.push({ id: 'u' + Date.now(), name, login, pass, role });
+  }
+
+  setUsers(users);
+  renderUsers();
+  closeUserModal();
+});
+
+document.getElementById('userModal').addEventListener('click', (e) => {
+  if (e.target.id === 'userModal') closeUserModal();
+});
+
+// ===== ОБРАБОТЧИКИ ЗАКАЗОВ =====
+document.getElementById('adminFilterStatus').addEventListener('change', renderAdminOrders);
+document.getElementById('adminFilterMethod').addEventListener('change', renderAdminOrders);
+document.getElementById('adminSearch').addEventListener('input', renderAdminOrders);
+
+document.getElementById('adminOrders').addEventListener('click', e=>{
+  if(isEditor) return;
+
+  const statusBtn = e.target.closest('[data-set-status]');
+  if(statusBtn){
+    const orders = getOrders();
+    const idx = orders.findIndex(o=>o.id===statusBtn.dataset.id);
+    if(idx > -1){ orders[idx].status = statusBtn.dataset.setStatus; setOrders(orders); renderAdminOrders(); }
+    return;
+  }
+  
+  const delBtn = e.target.closest('[data-del-id]');
+  if(delBtn){
+    if(!isOwner) return;
+    if(confirm('Удалить этот заказ?')){
+      setOrders(getOrders().filter(o=>o.id!==delBtn.dataset.delId));
+      renderAdminOrders();
+    }
+    return;
+  }
+});
+
+document.getElementById('adminExport').addEventListener('click', ()=>{
+  const orders = getOrders();
+  if(orders.length===0){ alert('Заказов нет для экспорта.'); return; }
+  const rows = [['ID','Дата','Статус','Имя','Телефон','Способ','Адрес','Время','Оплата','Комментарий','Промокод','Сумма','Товары']];
+  orders.forEach(o=>{
+    const items = (o.items||[]).map(i=>`${i.name} x${i.qty}`).join('; ');
+    rows.push([o.id, new Date(o.createdAt).toLocaleString('ru-RU'), o.status, o.name||'', o.phone||'', o.method||'', o.address||'', o.time||'', o.payment||'', (o.comment||'').replace(/[\r\n;]+/g,' '), o.promocode||'', o.total||0, items]);
+  });
+  const csv = rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(';')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'sushido-orders-'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('adminClearAll').addEventListener('click', ()=>{
+  if(!isOwner){ alert('Удалять заказы может только главный администратор'); return; }
+  if(confirm('Удалить ВСЕ заказы? Это нельзя отменить.')){
+    setOrders([]); renderAdminOrders();
+  }
+});
+
+// ===== ТАБЫ =====
+document.querySelectorAll('.admin-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.admin-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    if(tab.dataset.tab === 'news') renderNews();
+  });
+});
+
+// ===== ИНИЦИАЛИЗАЦИЯ =====
+initUsers();
+renderAdminOrders();
+renderUsers();
+renderNews();
+</script>
+</body>
+</html>
